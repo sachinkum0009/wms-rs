@@ -1,0 +1,32 @@
+[package]
+name = "wms-cli"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "wms-cli"
+path = "src/main.rs"
+
+[dependencies]
+# CLI framework
+clap = { version = "4.0", features = ["derive", "color"] }
+
+# Async runtime
+tokio = { version = "1.25", features = ["full"] }
+
+# Error handling
+anyhow = "1.0"
+color-eyre = "0.6"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "ansi"] }
+
+# WMS database integration
+wms-db = { path = "../wms-db" }
+
+# Environment variables
+dotenv = "0.15"
+
+# Random number generation
+fastrand = "2.0"
