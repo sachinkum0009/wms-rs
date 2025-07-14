@@ -1,3 +1,5 @@
 [workspace]
+
 members = ["wms_core", "wms-db", "wms-cli"]
+
 resolver = "2"

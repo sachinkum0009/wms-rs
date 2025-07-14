@@ -2171,6 +2171,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "wms-planner"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "wms_core"
 version = "0.1.0"
 
