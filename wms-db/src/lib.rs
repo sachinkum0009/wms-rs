@@ -1,9 +1,10 @@
 use anyhow::{Context, Result};
 use dotenv::dotenv;
-use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres, Row};
+use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres, Row, FromRow};
 use std::env;
 use std::time::Duration;
 use tracing::{info, error, warn};
+use chrono::{DateTime, Utc};
 
 /// Database configuration structure
 #[derive(Debug, Clone)]
@@ -149,6 +150,67 @@ impl Database {
         self.pool.close().await;
         info!("Database connection pool closed");
     }
+
+    /// Create a new order in the database
+    pub async fn create_order(&self, id: &str, item_name: &str, quantity: i32) -> Result<Order> {
+        info!("Creating order in database: {}", id);
+        
+        let order = sqlx::query_as!(
+            Order,
+            r#"
+            INSERT INTO orders (id, item_name, quantity, status)
+            VALUES ($1, $2, $3, 'pending')
+            RETURNING id, item_name, quantity, status, created_at, updated_at
+            "#,
+            id,
+            item_name,
+            quantity
+        )
+        .fetch_one(&self.pool)
+        .await
+        .context("Failed to create order")?;
+
+        info!("Order created successfully: {}", order.id);
+        Ok(order)
+    }
+
+    /// Get an order by ID
+    pub async fn get_order(&self, id: &str) -> Result<Option<Order>> {
+        let order = sqlx::query_as!(
+            Order,
+            "SELECT id, item_name, quantity, status, created_at, updated_at FROM orders WHERE id = $1",
+            id
+        )
+        .fetch_optional(&self.pool)
+        .await
+        .context("Failed to fetch order")?;
+
+        Ok(order)
+    }
+
+    /// List all orders
+    pub async fn list_orders(&self) -> Result<Vec<Order>> {
+        let orders = sqlx::query_as!(
+            Order,
+            "SELECT id, item_name, quantity, status, created_at, updated_at FROM orders ORDER BY created_at DESC"
+        )
+        .fetch_all(&self.pool)
+        .await
+        .context("Failed to fetch orders")?;
+
+        Ok(orders)
+    }
+}
+
+/// Order entity representing a warehouse order
+#[derive(Debug, Clone, FromRow)]
+pub struct Order {
+    pub id: String,
+    pub item_name: String,
+    pub quantity: i32,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Mask sensitive information in database URL for logging
@@ -233,5 +295,115 @@ mod tests {
         let db = Database::from_env().await.expect("Failed to connect to database");
         db.migrate().await.expect("Migrations failed");
         db.close().await;
+    }
+
+    #[tokio::test]
+    #[ignore] // Ignored by default, run with --ignored flag
+    async fn test_create_order() {
+        init_logging();
+        
+        // Skip test if DATABASE_URL is not set
+        if std::env::var("DATABASE_URL").is_err() {
+            eprintln!("Skipping integration test: DATABASE_URL not set");
+            return;
+        }
+
+        let db = Database::from_env().await.expect("Failed to connect to database");
+        db.migrate().await.expect("Migrations failed");
+
+        // Create a test order
+        let order_id = "ORD-TEST-001";
+        let item_name = "Test Item";
+        let quantity = 5;
+
+        let order = db.create_order(order_id, item_name, quantity)
+            .await
+            .expect("Failed to create order");
+
+        assert_eq!(order.id, order_id);
+        assert_eq!(order.item_name, item_name);
+        assert_eq!(order.quantity, quantity);
+        assert_eq!(order.status, "pending");
+
+        // Test get_order
+        let retrieved_order = db.get_order(order_id)
+            .await
+            .expect("Failed to get order")
+            .expect("Order not found");
+
+        assert_eq!(retrieved_order.id, order.id);
+        assert_eq!(retrieved_order.item_name, order.item_name);
+        assert_eq!(retrieved_order.quantity, order.quantity);
+
+        // Clean up - delete the test order
+        sqlx::query!("DELETE FROM orders WHERE id = $1", order_id)
+            .execute(&db.pool)
+            .await
+            .expect("Failed to clean up test order");
+
+        db.close().await;
+    }
+
+    #[tokio::test]
+    #[ignore] // Ignored by default, run with --ignored flag
+    async fn test_list_orders() {
+        init_logging();
+        
+        // Skip test if DATABASE_URL is not set
+        if std::env::var("DATABASE_URL").is_err() {
+            eprintln!("Skipping integration test: DATABASE_URL not set");
+            return;
+        }
+
+        let db = Database::from_env().await.expect("Failed to connect to database");
+        db.migrate().await.expect("Migrations failed");
+
+        // Create test orders
+        let order1_id = "ORD-TEST-LIST-001";
+        let order2_id = "ORD-TEST-LIST-002";
+
+        let _order1 = db.create_order(order1_id, "Test Item 1", 3)
+            .await
+            .expect("Failed to create order 1");
+
+        let _order2 = db.create_order(order2_id, "Test Item 2", 7)
+            .await
+            .expect("Failed to create order 2");
+
+        // Test list_orders
+        let orders = db.list_orders()
+            .await
+            .expect("Failed to list orders");
+
+        assert!(orders.len() >= 2);
+        assert!(orders.iter().any(|o| o.id == order1_id));
+        assert!(orders.iter().any(|o| o.id == order2_id));
+
+        // Clean up - delete the test orders
+        sqlx::query!("DELETE FROM orders WHERE id IN ($1, $2)", order1_id, order2_id)
+            .execute(&db.pool)
+            .await
+            .expect("Failed to clean up test orders");
+
+        db.close().await;
+    }
+
+    #[test]
+    fn test_order_struct() {
+        use chrono::Utc;
+        
+        let order = Order {
+            id: "ORD-123".to_string(),
+            item_name: "Test Item".to_string(),
+            quantity: 5,
+            status: "pending".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        assert_eq!(order.id, "ORD-123");
+        assert_eq!(order.item_name, "Test Item");
+        assert_eq!(order.quantity, 5);
+        assert_eq!(order.status, "pending");
     }
 }
