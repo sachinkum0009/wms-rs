@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use clap::{Parser, Subcommand};
 use color_eyre::eyre;
 use tracing::{info, error};

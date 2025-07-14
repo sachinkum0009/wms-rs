@@ -1,9 +1,10 @@
-use anyhow::{Context, Result};
+use color_eyre::eyre::{Context, Result};
 use dotenv::dotenv;
 use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres, Row};
 use std::env;
 use std::time::Duration;
 use tracing::{info, error, warn};
+use tracing_subscriber::filter::EnvFilter;
 
 /// Database configuration structure
 #[derive(Debug, Clone)]
@@ -120,7 +121,7 @@ impl Database {
                     Ok(())
                 } else {
                     error!("Database health check failed: unexpected result {}", result);
-                    anyhow::bail!("Database health check failed: unexpected result")
+                    color_eyre::eyre::bail!("Database health check failed: unexpected result")
                 }
             }
             Err(e) => {
@@ -170,7 +171,7 @@ pub fn init_logging() {
     }
     
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_env_filter(EnvFilter::from_default_env())
         .try_init()
         .ok(); // Ignore error if already initialized
 }

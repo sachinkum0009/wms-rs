@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use tracing::{info, error};
 use wms_db::Database;
 
@@ -19,7 +19,7 @@ pub async fn health() -> Result<()> {
                 }
                 Err(e) => {
                     error!("❌ Database health check failed: {}", e);
-                    return Err(e);
+                    return Err(e.into());
                 }
             }
             
@@ -29,7 +29,7 @@ pub async fn health() -> Result<()> {
         Err(e) => {
             error!("❌ Failed to establish database connection: {}", e);
             error!("💡 Make sure your .env file is configured with DATABASE_URL");
-            return Err(e);
+            return Err(e.into());
         }
     }
     

@@ -1,4 +1,4 @@
-use anyhow::Result;
+use color_eyre::eyre::Result;
 use tracing::info;
 
 /// Create a new order (stub implementation)
@@ -8,11 +8,11 @@ pub async fn create(item: String, quantity: u32) -> Result<()> {
     
     // Validate inputs
     if item.trim().is_empty() {
-        anyhow::bail!("Item name cannot be empty");
+        color_eyre::eyre::bail!("Item name cannot be empty");
     }
     
     if quantity == 0 {
-        anyhow::bail!("Quantity must be greater than 0");
+        color_eyre::eyre::bail!("Quantity must be greater than 0");
     }
     
     info!("📦 Order details:");
