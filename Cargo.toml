@@ -1,2 +1,3 @@
 [workspace]
-members = ["wms_core"]
+members = ["wms_core", "wms-db"]
+resolver = "2"
