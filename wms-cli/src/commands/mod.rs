@@ -1,3 +1,3 @@
-pub mod system;
 pub mod inventory;
 pub mod order;
+pub mod system;

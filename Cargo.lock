@@ -2147,6 +2147,7 @@ dependencies = [
  "color-eyre",
  "dotenv",
  "fastrand",
+ "once_cell",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2168,13 +2169,6 @@ dependencies = [
  "tracing-subscriber",
  "url",
  "uuid",
-]
-
-[[package]]
-name = "wms-planner"
-version = "0.1.0"
-dependencies = [
- "serde",
 ]
 
 [[package]]

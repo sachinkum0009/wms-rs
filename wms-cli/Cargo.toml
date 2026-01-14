@@ -30,3 +30,6 @@ dotenv = "0.15"
 
 # Random number generation
 fastrand = "2.0"
+
+# In-memory stub for order list
+once_cell = "1.19"

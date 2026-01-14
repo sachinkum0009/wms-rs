@@ -1,16 +1,16 @@
 use color_eyre::eyre::Result;
-use tracing::{info, error};
+use tracing::{error, info};
 use wms_db::Database;
 
 /// Check system health including database connectivity
 pub async fn health() -> Result<()> {
     info!("Running system health check...");
-    
+
     // Initialize database connection
     match Database::from_env().await {
         Ok(db) => {
             info!("✅ Database connection established");
-            
+
             // Run database health check
             match db.health_check().await {
                 Ok(()) => {
@@ -22,7 +22,7 @@ pub async fn health() -> Result<()> {
                     return Err(e.into());
                 }
             }
-            
+
             // Close database connection gracefully
             db.close().await;
         }
@@ -32,6 +32,6 @@ pub async fn health() -> Result<()> {
             return Err(e.into());
         }
     }
-    
+
     Ok(())
 }

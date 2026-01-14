@@ -1,9 +1,9 @@
 use color_eyre::eyre::{Context, Result};
 use dotenv::dotenv;
-use sqlx::{postgres::PgPoolOptions, PgPool, Pool, Postgres, Row};
+use sqlx::{postgres::PgPoolOptions, PgPool, Row};
 use std::env;
 use std::time::Duration;
-use tracing::{info, error, warn};
+use tracing::{error, info};
 use tracing_subscriber::filter::EnvFilter;
 
 /// Database configuration structure
@@ -34,8 +34,8 @@ impl DatabaseConfig {
         // Load .env file if it exists
         let _ = dotenv();
 
-        let database_url = env::var("DATABASE_URL")
-            .context("DATABASE_URL environment variable must be set")?;
+        let database_url =
+            env::var("DATABASE_URL").context("DATABASE_URL environment variable must be set")?;
 
         let max_connections = env::var("DB_MAX_CONNECTIONS")
             .unwrap_or_else(|_| "10".to_string())
@@ -109,7 +109,7 @@ impl Database {
     /// Run database health check
     pub async fn health_check(&self) -> Result<()> {
         info!("Running database health check...");
-        
+
         match sqlx::query("SELECT 1 as health_check")
             .fetch_one(&self.pool)
             .await
@@ -134,12 +134,12 @@ impl Database {
     /// Run pending migrations
     pub async fn migrate(&self) -> Result<()> {
         info!("Running database migrations...");
-        
+
         sqlx::migrate!("./migrations")
             .run(&self.pool)
             .await
             .context("Failed to run database migrations")?;
-        
+
         info!("Database migrations completed successfully");
         Ok(())
     }
@@ -169,7 +169,7 @@ pub fn init_logging() {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", "wms_db=info,sqlx=warn");
     }
-    
+
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .try_init()
@@ -208,30 +208,34 @@ mod tests {
     #[ignore] // Ignored by default, run with --ignored flag
     async fn test_database_connection() {
         init_logging();
-        
+
         // Skip test if DATABASE_URL is not set
         if std::env::var("DATABASE_URL").is_err() {
             eprintln!("Skipping integration test: DATABASE_URL not set");
             return;
         }
 
-        let db = Database::from_env().await.expect("Failed to connect to database");
+        let db = Database::from_env()
+            .await
+            .expect("Failed to connect to database");
         db.health_check().await.expect("Health check failed");
         db.close().await;
     }
 
     #[tokio::test]
-    #[ignore] // Ignored by default, run with --ignored flag  
+    #[ignore] // Ignored by default, run with --ignored flag
     async fn test_database_migration() {
         init_logging();
-        
+
         // Skip test if DATABASE_URL is not set
         if std::env::var("DATABASE_URL").is_err() {
             eprintln!("Skipping integration test: DATABASE_URL not set");
             return;
         }
 
-        let db = Database::from_env().await.expect("Failed to connect to database");
+        let db = Database::from_env()
+            .await
+            .expect("Failed to connect to database");
         db.migrate().await.expect("Migrations failed");
         db.close().await;
     }

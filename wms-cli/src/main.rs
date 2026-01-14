@@ -1,11 +1,10 @@
-use color_eyre::eyre::Result;
 use clap::{Parser, Subcommand};
-use color_eyre::eyre;
-use tracing::{info, error};
+use color_eyre::eyre::Result;
+use tracing::info;
 
 mod commands;
 
-use commands::{system, inventory, order};
+use commands::{inventory, order, system};
 
 #[derive(Parser)]
 #[command(name = "wms-cli")]
@@ -59,6 +58,8 @@ enum OrderCommands {
         #[arg(short, long)]
         quantity: u32,
     },
+    /// List all mock orders in this CLI session
+    List,
 }
 
 #[tokio::main]
@@ -75,23 +76,18 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::System { system_command } => {
-            match system_command {
-                SystemCommands::Health => system::health().await,
+        Commands::System { system_command } => match system_command {
+            SystemCommands::Health => system::health().await,
+        },
+        Commands::Inventory { inventory_command } => match inventory_command {
+            InventoryCommands::List => inventory::list().await,
+        },
+        Commands::Order { order_command } => match order_command {
+            OrderCommands::Create { item, quantity } => {
+                order::create(item.clone(), *quantity).await
             }
-        }
-        Commands::Inventory { inventory_command } => {
-            match inventory_command {
-                InventoryCommands::List => inventory::list().await,
-            }
-        }
-        Commands::Order { order_command } => {
-            match order_command {
-                OrderCommands::Create { item, quantity } => {
-                    order::create(item.clone(), *quantity).await
-                }
-            }
-        }
+            OrderCommands::List => order::list().await,
+        },
     }
 }
 
