@@ -1,4 +1,5 @@
 pub mod planner;
+pub mod traffic_manager;
 pub mod types;
 
 // Re-export commonly used items
