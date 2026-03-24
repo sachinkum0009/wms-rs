@@ -4,3 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+paho-mqtt = "0.13.3"
+serde = "1.0.228"
+serde_json = "1.0.149"
